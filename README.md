@@ -131,6 +131,9 @@ cd ..
 python inference.py --dataset cifar10 --model VGG8 --mode WAGE --inference 1 --cellBit 1 --subArray 128 --parallelRead 64
 python inference.py --dataset cifar10 --model DenseNet40 --mode WAGE --inference 1 --cellBit 2 --ADCprecision 6
 python inference.py --dataset imagenet --model ResNet18 --mode FP --inference 1 --onoffratio 100
+python roberta_lora_inference.py --dataset_name glue --dataset_config sst2 --split validation \
+    --text_field sentence --label_field label --base_model roberta-base --merge_lora 1 \
+    --inference 1 --subArray 128 --parallelRead 128
 ```
 
 <br/>
@@ -139,8 +142,33 @@ python inference.py --dataset imagenet --model ResNet18 --mode FP --inference 1 
 ```
 NOTE: the on-chip training framework has not yet been updated to support the features released in this version (DNN+NeuroSim V1.4).
 
-We plan to support the technology scaling to 1nm, partial parallel mode and the XY bus in a future update.  
+We plan to support the technology scaling to 1nm, partial parallel mode and the XY bus in a future update.
 ```
+
+### 11. (Optional) Evaluate transformer models with LoRA adapters
+
+The script `Inference_pytorch/roberta_lora_inference.py` demonstrates how to run
+RoBERTa-based NLP models (with or without LoRA adapters) through the NeuroSim
+hooks. It relies on the Hugging Face ecosystem and requires the
+`transformers`, `datasets`, and `peft` packages:
+
+```
+pip install transformers datasets peft
+```
+
+Example usage on the GLUE SST-2 validation split with an already merged LoRA
+adapter (set `--lora_path` to merge weights dynamically):
+
+```
+cd Inference_pytorch
+python roberta_lora_inference.py --dataset_name glue --dataset_config sst2 --split validation \
+    --text_field sentence --label_field label --base_model roberta-base --merge_lora 1 \
+    --inference 1 --subArray 128 --parallelRead 128
+```
+
+The script exports layer-wise traces compatible with the NeuroSim C++ backend in
+`Inference_pytorch/layer_record_roberta_lora/` and reports the classification
+accuracy for the evaluated split.
 In Pytorch/Tensorflow wrapper, users are able to define **_network structures, precision of synaptic weight and neural activation_**. With the integrated NeuroSim which takes real traces from wrapper, the framework can support hierarchical organization from device level to circuit level, to chip level and to algorithm level, enabling **_instruction-accurate evaluation on both accuracy and hardware performance of inference_**.
 
 Developers: [Junmo Lee](mailto:junmolee@gatech.edu) :two_men_holding_hands: [James Read](mailto:jread6@gatech.edu) :couple: [Anni Lu](mailto:alu75@gatech.edu) :two_women_holding_hands: [Xiaochen Peng](mailto:xpeng76@gatech.edu) :two_women_holding_hands: [Shanshi Huang](mailto:shuang406@gatech.edu).

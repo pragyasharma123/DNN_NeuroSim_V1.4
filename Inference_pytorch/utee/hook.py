@@ -46,6 +46,9 @@ def write_matrix_activation_conv(input_matrix,fill_dimension,length,filename):
 
 def write_matrix_activation_fc(input_matrix,fill_dimension,length,filename):
 
+    if input_matrix.ndim > 2:
+        input_matrix = input_matrix.reshape(-1, input_matrix.shape[-1])
+
     filled_matrix_b = np.zeros([input_matrix.shape[1],length],dtype=str)
     filled_matrix_bin,scale = dec2bin(input_matrix[0,:],length)
     for i,b in enumerate(filled_matrix_bin):
@@ -128,5 +131,11 @@ def hardware_evaluation(model,wl_weight,wl_activation,subArray,parallelRead,mode
     
     for i, layer in enumerate(model.modules()):
         if isinstance(layer, (FConv2d, QConv2d, nn.Conv2d)) or isinstance(layer, (FLinear, QLinear, nn.Linear)):
+            if not hasattr(layer, 'name'):
+                layer.name = f"{layer.__class__.__name__}_{i}"
+            if not hasattr(layer, 'wl_weight'):
+                layer.wl_weight = wl_weight
+            if not hasattr(layer, 'wl_input'):
+                layer.wl_input = wl_activation
             hook_handle_list.append(layer.register_forward_hook(Neural_Sim))
     return hook_handle_list
