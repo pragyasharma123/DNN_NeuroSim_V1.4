@@ -24,7 +24,6 @@ from __future__ import annotations
 import argparse
 import os
 import random
-import subprocess
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -242,15 +241,6 @@ def main() -> None:
         logger(f"weight bit-width: {args.wl_weight}")
         logger(f"activation bit-width: {args.wl_activate}")
         logger(f"variation: {args.vari}")
-
-        trace_cmd = os.path.join(
-            os.getcwd(), f"layer_record_{args.model_tag}", "trace_command.sh"
-        )
-        if os.path.exists(trace_cmd):
-            logger("Invoking NeuroSim backend via trace_command.sh")
-            subprocess.run(["/bin/bash", trace_cmd], check=True)
-        else:
-            logger(f"Warning: Expected trace command not found at {trace_cmd}")
 
 
 if __name__ == "__main__":
