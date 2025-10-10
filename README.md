@@ -131,6 +131,9 @@ cd ..
 python inference.py --dataset cifar10 --model VGG8 --mode WAGE --inference 1 --cellBit 1 --subArray 128 --parallelRead 64
 python inference.py --dataset cifar10 --model DenseNet40 --mode WAGE --inference 1 --cellBit 2 --ADCprecision 6
 python inference.py --dataset imagenet --model ResNet18 --mode FP --inference 1 --onoffratio 100
+python roberta_lora_inference.py --dataset_name glue --dataset_config sst2 --split validation \
+    --text_field sentence --label_field label --base_model roberta-base --merge_lora 1 \
+    --inference 1 --subArray 128 --parallelRead 128
 ```
 
 <br/>
@@ -139,8 +142,66 @@ python inference.py --dataset imagenet --model ResNet18 --mode FP --inference 1 
 ```
 NOTE: the on-chip training framework has not yet been updated to support the features released in this version (DNN+NeuroSim V1.4).
 
-We plan to support the technology scaling to 1nm, partial parallel mode and the XY bus in a future update.  
+We plan to support the technology scaling to 1nm, partial parallel mode and the XY bus in a future update.
 ```
+
+### 11. (Optional) Evaluate transformer models with LoRA adapters
+
+The script `Inference_pytorch/roberta_lora_inference.py` demonstrates how to run
+RoBERTa-based NLP models (with or without LoRA adapters) through the NeuroSim
+hooks.
+
+#### 11.1 Install the NLP dependencies
+
+Install the required Hugging Face packages in the same Python environment that
+you use for NeuroSim:
+
+```
+pip install "datasets>=2.14" "transformers>=4.30" "peft>=0.6"
+```
+
+> **Tip:** If you do not plan to attach a LoRA adapter you may omit `peft`.
+
+#### 11.2 Run a quick smoke test
+
+From the `Inference_pytorch/` directory run a short evaluation on the GLUE SST-2
+validation split. The command below keeps the workload small so you can confirm
+that the script, the Hugging Face downloads, and the NeuroSim hooks are all
+working end-to-end:
+
+```
+cd Inference_pytorch
+python roberta_lora_inference.py --dataset_name glue --dataset_config sst2 --split validation \
+    --text_field sentence --label_field label --base_model roberta-base --merge_lora 1 \
+    --max_samples 32 --batch_size 4 --inference 1 --subArray 128 --parallelRead 128
+```
+
+When the run finishes you should see the evaluation accuracy in the terminal and
+NeuroSim layer traces stored under
+`Inference_pytorch/layer_record_roberta_lora/`.
+
+#### 11.3 Add a LoRA adapter (optional)
+
+To evaluate a fine-tuned adapter, point `--lora_path` at the directory that
+contains the adapter weights. For example, if you downloaded an SST-2 LoRA via
+`huggingface-cli`:
+
+```
+python roberta_lora_inference.py --dataset_name glue --dataset_config sst2 --split validation \
+    --text_field sentence --label_field label --base_model roberta-base --lora_path ./sst2_lora \
+    --merge_lora 1 --max_samples 128 --batch_size 8 --inference 1
+```
+
+Setting `--merge_lora 1` folds the low-rank adapter into the base RoBERTa
+weights so the hardware traces reflect the effective model parameters.
+
+#### 11.4 Verify the NeuroSim output
+
+Hardware-aware traces are exported to
+`Inference_pytorch/layer_record_roberta_lora/<MODEL_TAG>/`, where `<MODEL_TAG>`
+defaults to `roberta_lora` (override with `--model_tag`). Each layer produces
+`.npy` files that can be consumed by the NeuroSim C++ backend in exactly the same
+way as the computer-vision examples.
 In Pytorch/Tensorflow wrapper, users are able to define **_network structures, precision of synaptic weight and neural activation_**. With the integrated NeuroSim which takes real traces from wrapper, the framework can support hierarchical organization from device level to circuit level, to chip level and to algorithm level, enabling **_instruction-accurate evaluation on both accuracy and hardware performance of inference_**.
 
 Developers: [Junmo Lee](mailto:junmolee@gatech.edu) :two_men_holding_hands: [James Read](mailto:jread6@gatech.edu) :couple: [Anni Lu](mailto:alu75@gatech.edu) :two_women_holding_hands: [Xiaochen Peng](mailto:xpeng76@gatech.edu) :two_women_holding_hands: [Shanshi Huang](mailto:shuang406@gatech.edu).
